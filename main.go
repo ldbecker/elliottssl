@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -109,6 +110,18 @@ func main() {
 			panic(err)
 		}
 		fmt.Printf("Results: \n%v", results)
+
+		//write results to file
+		fn := fmt.Sprintf("./%v.json", time.Now().Unix())
+		resultsJSON, err := json.Marshal(results)
+		if err != nil {
+			fmt.Printf("error marshaling json resp: %v\n", err)
+			return
+		}
+		err = os.WriteFile(fn, resultsJSON, 0644)
+		if err != nil {
+			fmt.Printf("error writing json file: %v\n", err)
+		}
 	}
 
 }
