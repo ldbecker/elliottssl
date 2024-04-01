@@ -64,7 +64,7 @@ func analyzeEndpoint(hostname string) (ApiResponse, error) {
 
 	for apiResp.StatusMsg == "IN_PROGRESS" {
 		fmt.Printf("Status: %v\n", apiResp.StatusMsg)
-		fmt.Printf("Sleeping 5 seconds...\n")
+		fmt.Printf("Sleeping 10 seconds...\n")
 		time.Sleep(time.Second * time.Duration(10))
 		newResp, err = http.Get(ANALYZEPATH + hostname)
 		if err != nil {
@@ -135,6 +135,7 @@ func main() {
 		if err != nil {
 			fmt.Printf("error writing json file: %v\n", err)
 		}
+		fmt.Printf("%v\n", string(resultsJSON))
 	}
 	fmt.Println("Done")
 }
