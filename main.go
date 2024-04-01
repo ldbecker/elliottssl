@@ -53,18 +53,19 @@ func analyzeEndpoint(hostname string) (ApiResponse, error) {
 
 	var apiResp ApiResponse
 	fmt.Printf("Analyzing %v....\n", hostname)
+	if newResp.StatusCode != http.StatusOK {
+		return results, fmt.Errorf("init scan failed with code %v", newResp.StatusCode)
+	}
+
 	err = json.Unmarshal(newRespBytes, &apiResp)
 	if err != nil {
 		return results, fmt.Errorf("error unmarshaling init scan response: %v", err)
-	}
-	if newResp.StatusCode != http.StatusOK {
-		return results, fmt.Errorf("init scan failed with code %v", newResp.StatusCode)
 	}
 
 	for apiResp.StatusMsg == "IN_PROGRESS" {
 		fmt.Printf("Status: %v\n", apiResp.StatusMsg)
 		fmt.Printf("Sleeping 5 seconds...\n")
-		time.Sleep(time.Second * time.Duration(5))
+		time.Sleep(time.Second * time.Duration(10))
 		newResp, err = http.Get(ANALYZEPATH + hostname)
 		if err != nil {
 			return results, fmt.Errorf("scan update failed: %v", err)
