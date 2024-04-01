@@ -11,6 +11,7 @@ import (
 )
 
 type ApiEndpointsResponse struct {
+	Hostname          string `json:"hostname,omitempty"`
 	IP                string `json:"ipAddress"`
 	StatusMsg         string `json:"statusMessage"`
 	Grade             string `json:"grade"`
@@ -27,26 +28,31 @@ type ApiResponse struct {
 	Endpoints []ApiEndpointsResponse `json:"endpoints,omitempty"`
 }
 
+type TestResults struct {
+	Hostname  string                 `json:"hostname"`
+	Endpoints []ApiEndpointsResponse `json:"endpoints,omitempty"`
+}
+
 var APIENDPOINT = "https://api.ssllabs.com/api/v2/"
 var INFOPATH = APIENDPOINT + "info"
 var ANALYZEPATHNEW = APIENDPOINT + "analyze?startNew=on&host="
 var ANALYZEPATH = APIENDPOINT + "analyze?host="
 var httpClient *http.Client
 
-func analyzeEndpoint(hostname string) ([]ApiEndpointsResponse, error) {
-	results := make([]ApiEndpointsResponse, 0)
+func analyzeEndpoint(hostname string) (ApiResponse, error) {
+	var results ApiResponse
 	newResp, err := http.Get(ANALYZEPATHNEW + hostname)
 	if err != nil {
 		return results, fmt.Errorf("error initiating scan: %v", err)
 	}
-	//defer newResp.Body.Close()
+	defer newResp.Body.Close()
 	newRespBytes, err := io.ReadAll(newResp.Body)
 	if err != nil {
 		return results, fmt.Errorf("error parsing init scan response: %v", err)
 	}
 
 	var apiResp ApiResponse
-	fmt.Println(string(newRespBytes))
+	fmt.Printf("Analyzing %v....\n", hostname)
 	err = json.Unmarshal(newRespBytes, &apiResp)
 	if err != nil {
 		return results, fmt.Errorf("error unmarshaling init scan response: %v", err)
@@ -55,7 +61,7 @@ func analyzeEndpoint(hostname string) ([]ApiEndpointsResponse, error) {
 		return results, fmt.Errorf("init scan failed with code %v", newResp.StatusCode)
 	}
 
-	for apiResp.StatusMsg != "READY" {
+	for apiResp.StatusMsg == "IN_PROGRESS" {
 		fmt.Printf("Status: %v\n", apiResp.StatusMsg)
 		fmt.Printf("Sleeping 5 seconds...\n")
 		time.Sleep(time.Second * time.Duration(5))
@@ -73,9 +79,14 @@ func analyzeEndpoint(hostname string) ([]ApiEndpointsResponse, error) {
 			return results, fmt.Errorf("error unmarshaling update body: %v", err)
 
 		}
+
+		//add hostnames to each endpoint entry for readability
+		for endpointIndex := range apiResp.Endpoints {
+			apiResp.Endpoints[endpointIndex].Hostname = hostname
+		}
 	}
 
-	return apiResp.Endpoints, nil
+	return apiResp, nil
 
 }
 
@@ -88,10 +99,12 @@ func main() {
 
 	httpClient = &http.Client{Transport: transport}
 
-	fmt.Println("hi")
+	fmt.Printf("Starting scan of hostnames...\n")
 	//We could have more hostnames, but for now lets just do one
 	hostnames := []string{
 		"elliottmgmt.com",
+		"newyorkjets.com",
+		"yankees.com",
 	}
 	//first see if we can get the info path from the api
 	infoResp, err := httpClient.Get(INFOPATH)
@@ -107,12 +120,11 @@ func main() {
 		//start the scan
 		results, err := analyzeEndpoint(curHost)
 		if err != nil {
-			panic(err)
+			fmt.Printf("error scanning %v: %v\n", curHost, err)
+			continue
 		}
-		fmt.Printf("Results: \n%v", results)
-
 		//write results to file
-		fn := fmt.Sprintf("./%v.json", time.Now().Unix())
+		fn := fmt.Sprintf("./%v-%v.json", curHost, time.Now().Unix())
 		resultsJSON, err := json.Marshal(results)
 		if err != nil {
 			fmt.Printf("error marshaling json resp: %v\n", err)
@@ -123,5 +135,5 @@ func main() {
 			fmt.Printf("error writing json file: %v\n", err)
 		}
 	}
-
+	fmt.Println("Done")
 }
