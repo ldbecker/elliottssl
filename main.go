@@ -81,12 +81,11 @@ func analyzeEndpoint(hostname string) (ApiResponse, error) {
 
 		}
 
-		//add hostnames to each endpoint entry for readability
-		for endpointIndex := range apiResp.Endpoints {
-			apiResp.Endpoints[endpointIndex].Hostname = hostname
-		}
 	}
-
+	//add hostnames to each endpoint entry for readability
+	for endpointIndex := range apiResp.Endpoints {
+		apiResp.Endpoints[endpointIndex].Hostname = hostname
+	}
 	return apiResp, nil
 
 }
