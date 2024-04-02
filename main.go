@@ -70,7 +70,7 @@ func analyzeEndpoint(hostname string) (ApiResponse, error) {
 		if err != nil {
 			return results, fmt.Errorf("scan update failed: %v", err)
 		}
-		//defer newResp.Body.Close()
+		defer newResp.Body.Close()
 		newRespBytes, err = io.ReadAll(newResp.Body)
 		if err != nil {
 			return results, fmt.Errorf("error reading update body: %v", err)
@@ -86,6 +86,7 @@ func analyzeEndpoint(hostname string) (ApiResponse, error) {
 	for endpointIndex := range apiResp.Endpoints {
 		apiResp.Endpoints[endpointIndex].Hostname = hostname
 	}
+
 	return apiResp, nil
 
 }
